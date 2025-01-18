@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, FlatList, Touchable, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, FlatList, Touchable, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as schema from '@/db/schema';
@@ -7,6 +7,9 @@ import * as schema from '@/db/schema';
 import Svg, { Path } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 
 interface Task {
   id: number;
@@ -22,6 +25,13 @@ interface Task {
   list_id: number;
 }
 
+
+interface Task2 {
+  id: number;
+  cliente: string;
+  
+}
+
 export default function HomeScreen() {
   const db = useSQLiteContext();
   const drizzleDb = drizzle(db, { schema });
@@ -29,23 +39,31 @@ export default function HomeScreen() {
   const [cliente, setCliente] = useState<string>('');
   const [correo, setCorreo] = useState<string>('');
   const [notas, setNotas] = useState<string>('');
-  const [imagen1, setImagen1] = useState<string>('');
-  const [imagen2, setImagen2] = useState<string>('');
-  const [imagen3, setImagen3] = useState<string>('');
-  const [imagen4, setImagen4] = useState<string>('');
   const [firma, setFirma] = useState<string>('');
   const [foto, setFoto] = useState<string>('');
   const [listId, setListId] = useState<string>('');
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task2[]>([]);
+  const [photoUri, setPhotoUri] = React.useState<string | null>(null);
 
   const [paths, setPaths] = React.useState<string[]>([]); // Lista de caminos (paths) de la firma
   const [currentPath, setCurrentPath] = React.useState<string>(''); // Camino (path) actual
   const signatureRef = React.useRef<Svg>(null);
 
+  const [images, setImages] = React.useState<Array<string | null>>([null, null, null, null]);
+
+  const cameraRef = React.useRef<any>(null);
+
+
+
   // Cargar datos al iniciar
     useEffect(() => {
     const loadData = async () => {
-      const fetchedTasks = await drizzleDb.query.tasks.findMany();
+      const fetchedTasks = await drizzleDb.query.tasks.findMany({
+        columns: {
+          id: true,
+          cliente: true,
+        },
+      });
       setTasks(fetchedTasks);
     };
     loadData();
@@ -112,6 +130,23 @@ export default function HomeScreen() {
     setCurrentPath('');
   };
 
+  const handleImagePicker = async (index: number) => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== 'granted') {
+      console.error('Permiso denegado para acceder a la biblioteca de medios.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync();
+
+    if (!result.canceled && result.assets && result.assets[0].uri) {
+      const newImages = [...images];
+      newImages[index] = result.assets[0].uri;  // Acceder al URI de la imagen
+      setImages(newImages);
+    }
+  };
+
 
   const addTask = async () => {
     if (!cliente || !correo || !listId) {
@@ -120,33 +155,75 @@ export default function HomeScreen() {
   
     // Capturamos la firma en base64
     const firmaBase64 = await captureSignature();
+
+    const imageBase64Array: string[] = [];
+    for (const image of images) {
+      if (image) {
+        try {
+          const imageInfo = await FileSystem.getInfoAsync(image);
+          if (imageInfo.exists) {
+            const base64 = await FileSystem.readAsStringAsync(image, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            imageBase64Array.push(`${base64}`);
+          }
+        } catch (error) {
+          console.error('Error al convertir la imagen a base64:', error);
+        }
+      }
+    }
+
+    while (imageBase64Array.length < 4) {
+      imageBase64Array.push(''); // Si no hay suficientes imágenes, agrega valores vacíos
+    }
+
+    let cameraImageBase64 = '';
+    try {
+      if (cameraRef.current) {
+        const photo = await cameraRef.current.takePictureAsync();
+        //const photo = await CameraView.captureAsync(); // Supón que `captureAsync` es el método
+        setPhotoUri(photo.uri);
+        // Convierte la foto a base64 inmediatamente
+        const base64 = await FileSystem.readAsStringAsync(photo.uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        cameraImageBase64 = `${base64}`;
+      }
+
+    } catch (error) {
+      console.error('Error al capturar la foto:', error);
+    }
+
+
   
     // Insertamos los datos en la base de datos
     await drizzleDb.insert(schema.tasks).values({
       cliente,
       correo,
       notas,
-      imagen1,
-      imagen2,
-      imagen3,
-      imagen4,
+      imagen1: imageBase64Array[0],
+      imagen2: imageBase64Array[1],
+      imagen3: imageBase64Array[2],
+      imagen4: imageBase64Array[3],
       firma: firmaBase64,  // Guardamos la firma en base64
-      foto,
+      foto: cameraImageBase64,
       list_id: Number(listId),
     });
   
     // Actualizamos la lista de tareas
-    const updatedTasks = await drizzleDb.query.tasks.findMany();
-    setTasks(updatedTasks);
+    const fetchedTasks = await drizzleDb.query.tasks.findMany({
+      columns: {
+        id: true,
+        cliente: true,
+      },
+    });
+    setTasks(fetchedTasks);
   
     // Limpiamos el formulario
     setCliente('');
     setCorreo('');
     setNotas('');
-    setImagen1('');
-    setImagen2('');
-    setImagen3('');
-    setImagen4('');
+    setImages([null, null, null, null]);
     setFirma('');
     setFoto('');
     setListId('');
@@ -173,30 +250,42 @@ export default function HomeScreen() {
         value={notas}
         onChangeText={setNotas}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Imagen 1"
-        value={imagen1}
-        onChangeText={setImagen1}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Imagen 2"
-        value={imagen2}
-        onChangeText={setImagen2}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Imagen 3"
-        value={imagen3}
-        onChangeText={setImagen3}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Imagen 4"
-        value={imagen4}
-        onChangeText={setImagen4}
-      />
+        <View>
+            <View style={styles.imageRow}>
+              {images.slice(0, 2).map((image, index) => (
+                <View key={index} style={styles.imagePickerContainer}>
+                  <TouchableOpacity
+                    style={styles.largeImagePickerButton}
+                    onPress={() => handleImagePicker(index)}
+                  >
+                    {image ? (
+                      <Image source={{ uri: image }} style={styles.image} />
+                    ) : (
+                      <Text>Elegir Imagen {index + 1}</Text>
+                    )}
+                  </TouchableOpacity>
+                  <Text>Imagen {index + 1}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.imageRow}>
+              {images.slice(2, 4).map((image, index) => (
+                <View key={index + 2} style={styles.imagePickerContainer}>
+                  <TouchableOpacity
+                    style={styles.largeImagePickerButton}
+                    onPress={() => handleImagePicker(index + 2)}
+                  >
+                    {image ? (
+                      <Image source={{ uri: image }} style={styles.image} />
+                    ) : (
+                      <Text>Elegir Imagen {index + 3}</Text>
+                    )}
+                  </TouchableOpacity>
+                  <Text>Imagen {index + 3}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
      <View style={styles.signatureContainer}>
   <Text>Firma Electrónica:</Text>
   <View style={styles.signatureCanvas}>
@@ -224,12 +313,16 @@ export default function HomeScreen() {
     </TouchableOpacity>
   </View>
 </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Foto"
-        value={foto}
-        onChangeText={setFoto}
-      />
+<View style={styles.cameraContainer}>
+            <CameraView
+              facing='front'
+              style={styles.cameraPreview}
+              ref={cameraRef}
+            >
+              <View style={{ height: 300 }}></View>
+            </CameraView>
+          </View>
+
       <TextInput
         style={styles.input}
         placeholder="List ID"
@@ -245,7 +338,7 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <Text>
-            ID: {item.firma}, Cliente: {item.cliente}, Correo: {item.correo}, List ID: {item.list_id}
+            ID: {item.id}, Cliente: {item.cliente}
           </Text>
         )}
       />
@@ -274,6 +367,26 @@ const styles = StyleSheet.create({
     marginTop: 20,
     alignItems: 'center',
   },
+  imageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 10,
+  },
+  imagePickerContainer: {
+    alignItems: 'center',
+  },  
+  largeImagePickerButton: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#ddd',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  image: {
+    width: 100,
+    height: 100,
+    resizeMode: 'cover',
+  },
   signatureCanvas: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -284,5 +397,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     padding: 10,
     borderRadius: 5,
+  },
+  cameraContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraPreview: {
+    width: '100%',
+    height: '100%',
   },
 });
