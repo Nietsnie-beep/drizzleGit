@@ -3,25 +3,24 @@ import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 // Tabla de tareas
 export const tasks = sqliteTable('tasks', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  list_id: integer('list_id')
-    .notNull()
-    .references(() => lists.id),
+  taskId: integer('id'),
+  titulo: text('titulo'),
+  fecha_vencimiento: text('fecha_vencimiento'),
   cliente: text('cliente').notNull(),
   correo: text('correo').notNull(),
   notas: text('notas'),
-  imagen1: text('imagen1'),
-  imagen2: text('imagen2'),
-  imagen3: text('imagen3'),
-  imagen4: text('imagen4'),
-  firma: text('firma'),
-  foto: text('foto'),
+  image_1_base64: text('image_1_base64'),
+  image_2_base64: text('image_2_base64'),
+  image_3_base64: text('image_3_base64'),
+  image_4_base64: text('image_4_base64'),
+  firma_base64: text('firma_base64'),
+  firma_2: text('firma_2'),
+  image_persona_2: text('image_persona_2'),
+  foto_base64: text('foto_base64'),
+  status_envio: integer('status_envio').default(1),
+  marca: integer('marca').default(1),
 });
 
-// Tabla de listas
-export const lists = sqliteTable('lists', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
-});
 
 // Exportar el tipo Task para usar como interfaz en tu aplicación
 export type Task = typeof tasks.$inferSelect;

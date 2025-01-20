@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, FlatList, Touchable, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, FlatList, Touchable, TouchableOpacity, ScrollView, Image, SafeAreaView } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as schema from '@/db/schema';
@@ -10,339 +10,326 @@ import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { Link } from 'expo-router';
+import { useUserContext } from '@/components/UserContext';
+import axios from 'axios';
+import { API_HOST } from '@/components/api';
+import { eq } from 'drizzle-orm';
+import migrations from '@/drizzle/migrations';
+import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 
 interface Task {
   id: number;
-  cliente: string;
-  correo: string;
-  notas: string | null;
-  imagen1: string | null;
-  imagen2: string | null;
-  imagen3: string | null;
-  imagen4: string | null;
+  tecnico_nombre: string;
+  cliente_nombre: string;
+  titulo: string;
+  description: string;
+  fecha_creacion: string;
+  fecha_vencimiento: string | null;
+  status: number;
+  status_envio: number;
   firma: string | null;
-  foto: string | null;
-  list_id: number;
+  recibio: string;
+  image_1: string | null;
+  image_2: string | null;
+  image_3: string | null;
+  image_4: string | null;
+  image_persona: string | null;
+  correo: string | null;
+  fotos: string | null;
+  notas: string;
+  estatus_pago: number;
+  estatus_Factura: number;
+  no_Factura: string | null;
+  no_Factura_nota: string | null;
+  porcentaje_de_pago: number | null;
+  fecha_pago_nota: string | null;
+  costo: number | null;
+  precio: number;
+  cobrado: number;
+  resta: number;
+  comision: number | null;
+  comisionista: string | null;
+  status_cobranza: number | null;
+  precio_inicial: number;
+  total_comision: number;
+  firma_2: string | null;
+  image_persona_2: string | null;
+  estatus_firma_2: number;
+  cliente: number;
+  tecnico: number;
 }
 
-
-interface Task2 {
+interface TaskDetailParams {
+  title: string;
+  author: string;
+  duration: string;
+  rating: number;
+  reviewers: number;
+  summary: string;
+  imageSource: any; // Usa el tipo específico de la imagen si es posible
   id: number;
-  cliente: string;
-  
 }
+
+
+
 
 export default function HomeScreen() {
+
   const db = useSQLiteContext();
   const drizzleDb = drizzle(db, { schema });
+  const {userId } = useUserContext();
 
-  const [cliente, setCliente] = useState<string>('');
-  const [correo, setCorreo] = useState<string>('');
-  const [notas, setNotas] = useState<string>('');
-  const [firma, setFirma] = useState<string>('');
-  const [foto, setFoto] = useState<string>('');
-  const [listId, setListId] = useState<string>('');
-  const [tasks, setTasks] = useState<Task2[]>([]);
-  const [photoUri, setPhotoUri] = React.useState<string | null>(null);
+  const [selectedTab, setSelectedTab] = React.useState<null | number>(null);
+  const [data, setData] = React.useState<Task[]>([]);
+  const [filteredData, setFilteredData] = React.useState<Task[]>([]);
+  const [searchText, setSearchText] = React.useState('');
+  const [lista2daFirma, setlista2daFirma] = React.useState<any[]>([]);
+  const [lista3, setlista3] = React.useState<any[]>([]);
 
-  const [paths, setPaths] = React.useState<string[]>([]); // Lista de caminos (paths) de la firma
-  const [currentPath, setCurrentPath] = React.useState<string>(''); // Camino (path) actual
-  const signatureRef = React.useRef<Svg>(null);
+  const [sistema, setSistema] = React.useState<string>("");
 
-  const [images, setImages] = React.useState<Array<string | null>>([null, null, null, null]);
+ 
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
-  const cameraRef = React.useRef<any>(null);
-
+  
+  
 
 
-  // Cargar datos al iniciar
-    useEffect(() => {
-    const loadData = async () => {
-      const fetchedTasks = await drizzleDb.query.tasks.findMany({
-        columns: {
-          id: true,
-          cliente: true,
-        },
-      });
-      setTasks(fetchedTasks);
+  React.useEffect(() => {
+    // Fetch data from API
+    const fetchData = async () => {
+      try {
+        const response = await axios.get<Task[]>(
+          `${API_HOST}/tareas_tecnico/${userId}`
+        );
+        setData(response.data);
+        console.log('Data:', userId);
+        
+
+        // Filtro inicial: Solo tareas con `status === 1`
+        setFilteredData(response.data.filter((task) => task.status === 1));
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+      }
+
+      try {
+        const data = await drizzleDb.select().from(schema.tasks).where(eq(schema.tasks.marca, 1));
+        setSistema("coneccion hecha")
+        //console.error('informaciontomada:', data);
+        setlista2daFirma(data);
+      } catch (error) {
+        console.error('error:', data);
+        setSistema("error")
+      }
+
+      try {
+        const data = await drizzleDb.select().from(schema.tasks).where(eq(schema.tasks.marca, 0));
+        console.error('informaciontomada:', data);
+        setSistema("coneccion hecha")
+        setlista3(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setSistema("error")
+      }
     };
-    loadData();
-  }, []);
+    fetchData();
+  }, []); // Solo se ejecuta al cargar la pantalla
 
+  const applyFilters = () => {
+    let updatedData = [...data];
 
-  const getBase64FromUri = async (uri: any) => {
+    // Filtro de búsqueda por texto
+    if (searchText) {
+      updatedData = updatedData.filter(
+        (task) =>
+          task.titulo.toLowerCase().includes(searchText.toLowerCase()) ||
+          task.cliente_nombre.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+
+    setFilteredData(updatedData);
+  };
+
+  React.useEffect(() => {
+    applyFilters();
+  }, [searchText, data]);
+
+  const handleNavigateToDetail = (task: Task) => {
+    // navigation.navigate('taskDetail', {
+    //   id: task.id,
+    //   title: task.titulo,
+    //   author: task.cliente_nombre,
+    //   tecnico_nombre: task.tecnico_nombre,
+    //   duration: "24 mins", // Reemplaza con los datos reales si están disponibles en task
+    //   rating: 5, // Reemplaza con los datos reales si están disponibles en task
+    //   reviewers: 241, // Reemplaza con los datos reales si están disponibles en task
+    //   cliente_nombre: task.cliente_nombre, // Reemplaza con los datos reales si están
+    //   summary: task.description,
+    //   imageSource: Images.reading.firma, // Reemplaza con la fuente de imagen real si está disponible en task
+    //   status: task.status,
+    //   estatus_firma_2: task.estatus_firma_2, // Asegúrate de que 'estatus_firma_2' esté presente en el objeto 'task'
+    //   fecha_fin: task.fecha_vencimiento,
+    // });
+
+  };
+
+  const handleSendTaskAsync = async (task: any) => {
+    // Crear un objeto con solo los campos válidos
+    const dataToSend = {
+      cliente: task.cliente,
+      correo: task.correo,
+      notas: task.notas,
+      image_1: task.image_1_base64,
+      image_2: task.image_2_base64,
+      image_3: task.image_3_base64,
+      image_4: task.image_4_base64,
+      firma: task.firma_base64,
+      firma_2: task.firma_2,
+      image_persona_2: task.image_persona_2,
+      image_persona: task.foto_base64,
+      status_envio: 1,
+      status: 2,
+      status_firma_2:3,
+      marca: task.marca,
+
+    };
+  
+    // Ahora puedes enviar el objeto con los datos al servidor
     try {
-      const fileInfo = await FileSystem.getInfoAsync(uri);
-      if (fileInfo.exists) {
-        const base64 = await FileSystem.readAsStringAsync(uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        return `${base64}`;
-      }
+      const response = await axios.put(`${API_HOST}/update/${task.taskId}/`, dataToSend);
+      console.log('Respuesta del servidor:', response.data);
+     
+      //navigation.navigate('taskList');
     } catch (error) {
-      console.error('Error al obtener el código base64:', error);
-    }
-    return null; // Devuelve null en caso de error
-  };
-
-  const captureSignature = async () => {
-    try {
-      if (signatureRef.current) {
-        const uri = await captureRef(signatureRef, {
-          format: 'png',
-          quality: 1,
-        });
-        const base64Firma = await getBase64FromUri(uri);
-        return base64Firma;
-      }
-    } catch (error) {
-      console.error('Error al capturar la firma:', error);
-    }
-    return null;
-  };
-
-  const handleTouchStart = (event: any) => {
-    // Inicializa el nuevo path en `currentPath` al empezar a dibujar
-    //setScrollEnabled(false);
-    const { nativeEvent } = event;
-    const { locationX, locationY } = nativeEvent;
-    setCurrentPath((prevPath) => `${prevPath}M${locationX} ${locationY}`);
-
-  };
-
-  const handleTouchMove = (event: any) => {
-    // Agrega puntos al path actual
-    const { nativeEvent } = event;
-    const { locationX, locationY } = nativeEvent;
-    setCurrentPath((prevPath) => `${prevPath} L${locationX} ${locationY}`);
-  };
-
-  const handleTouchEnd = () => {
-    //setScrollEnabled(true); // Reactivar scroll
-    // Agrega el path actual a la lista de paths y reinicia `currentPath`
-    // setPaths((prevPaths) => [...prevPaths, currentPath]);
-    // setCurrentPath('');
-  };
-
-  const clearSignature = () => {
-    // Limpia la firma
-
-    setCurrentPath('');
-  };
-
-  const handleImagePicker = async (index: number) => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (status !== 'granted') {
-      console.error('Permiso denegado para acceder a la biblioteca de medios.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync();
-
-    if (!result.canceled && result.assets && result.assets[0].uri) {
-      const newImages = [...images];
-      newImages[index] = result.assets[0].uri;  // Acceder al URI de la imagen
-      setImages(newImages);
+      console.error('Error al enviar los datos al servidor:', error);
+      // Manejo de errores, como mostrar un mensaje de error
     }
   };
 
-
-  const addTask = async () => {
-    if (!cliente || !correo || !listId) {
-      return alert('Cliente, Correo y List ID son obligatorios');
+  const handleTabChange = (index: number) => {
+    setSelectedTab(index);
+    if (index === 0) {
+      // Tab "Primera Firma": Filtrar tareas finalizadas
+      setFilteredData(data.filter((task) => task.status === 1));
+    } else if (index === 1) {
+      // Tab "Segunda Firma": Filtrar tareas activas
+      setFilteredData(data.filter((task) => task.status === 3));
     }
-  
-    // Capturamos la firma en base64
-    const firmaBase64 = await captureSignature();
-
-    const imageBase64Array: string[] = [];
-    for (const image of images) {
-      if (image) {
-        try {
-          const imageInfo = await FileSystem.getInfoAsync(image);
-          if (imageInfo.exists) {
-            const base64 = await FileSystem.readAsStringAsync(image, {
-              encoding: FileSystem.EncodingType.Base64,
-            });
-            imageBase64Array.push(`${base64}`);
-          }
-        } catch (error) {
-          console.error('Error al convertir la imagen a base64:', error);
-        }
-      }
-    }
-
-    while (imageBase64Array.length < 4) {
-      imageBase64Array.push(''); // Si no hay suficientes imágenes, agrega valores vacíos
-    }
-
-    let cameraImageBase64 = '';
-    try {
-      if (cameraRef.current) {
-        const photo = await cameraRef.current.takePictureAsync();
-        //const photo = await CameraView.captureAsync(); // Supón que `captureAsync` es el método
-        setPhotoUri(photo.uri);
-        // Convierte la foto a base64 inmediatamente
-        const base64 = await FileSystem.readAsStringAsync(photo.uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        cameraImageBase64 = `${base64}`;
-      }
-
-    } catch (error) {
-      console.error('Error al capturar la foto:', error);
-    }
-
-
-  
-    // Insertamos los datos en la base de datos
-    await drizzleDb.insert(schema.tasks).values({
-      cliente,
-      correo,
-      notas,
-      imagen1: imageBase64Array[0],
-      imagen2: imageBase64Array[1],
-      imagen3: imageBase64Array[2],
-      imagen4: imageBase64Array[3],
-      firma: firmaBase64,  // Guardamos la firma en base64
-      foto: cameraImageBase64,
-      list_id: Number(listId),
-    });
-  
-    // Actualizamos la lista de tareas
-    const fetchedTasks = await drizzleDb.query.tasks.findMany({
-      columns: {
-        id: true,
-        cliente: true,
-      },
-    });
-    setTasks(fetchedTasks);
-  
-    // Limpiamos el formulario
-    setCliente('');
-    setCorreo('');
-    setNotas('');
-    setImages([null, null, null, null]);
-    setFirma('');
-    setFoto('');
-    setListId('');
+  };
+  const simulateApiCall = (item: any) => {
+    console.log('Simulated API call with data:', JSON.stringify(item, null, 2));
+    //
+    // Alert.alert('Simulación de envío', 'Datos enviados a la API simulada.');
   };
 
-  return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Agregar Nuevo Registro</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Cliente"
-        value={cliente}
-        onChangeText={setCliente}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Correo"
-        value={correo}
-        onChangeText={setCorreo}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Notas"
-        value={notas}
-        onChangeText={setNotas}
-      />
-        <View>
-            <View style={styles.imageRow}>
-              {images.slice(0, 2).map((image, index) => (
-                <View key={index} style={styles.imagePickerContainer}>
-                  <TouchableOpacity
-                    style={styles.largeImagePickerButton}
-                    onPress={() => handleImagePicker(index)}
-                  >
-                    {image ? (
-                      <Image source={{ uri: image }} style={styles.image} />
-                    ) : (
-                      <Text>Elegir Imagen {index + 1}</Text>
-                    )}
-                  </TouchableOpacity>
-                  <Text>Imagen {index + 1}</Text>
-                </View>
-              ))}
-            </View>
-            <View style={styles.imageRow}>
-              {images.slice(2, 4).map((image, index) => (
-                <View key={index + 2} style={styles.imagePickerContainer}>
-                  <TouchableOpacity
-                    style={styles.largeImagePickerButton}
-                    onPress={() => handleImagePicker(index + 2)}
-                  >
-                    {image ? (
-                      <Image source={{ uri: image }} style={styles.image} />
-                    ) : (
-                      <Text>Elegir Imagen {index + 3}</Text>
-                    )}
-                  </TouchableOpacity>
-                  <Text>Imagen {index + 3}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-     <View style={styles.signatureContainer}>
-  <Text>Firma Electrónica:</Text>
-  <View style={styles.signatureCanvas}>
-    <Svg
-      height="200"
-      width="300"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      ref={signatureRef}
+  const renderItem = ({ item }: { item: any }) => (
+    <View style={styles.card}>
+    <Text style={styles.title}>ID: {item.id}</Text>
+    <Text>Cliente: {item.cliente}</Text>
+    <Text>Correo: {item.correo}</Text>
+    <Text>Notas: {item.notas}</Text>
+    <TouchableOpacity
+      style={styles.button}
+      onPress={() => simulateApiCall(item)}
     >
-      {paths.map((pathData, index) => (
-        <Path
-          key={index}
-          d={pathData}
-          fill="none"
-          stroke="black"
-          strokeWidth="2"
-        />
-      ))}
-      <Path d={currentPath} fill="none" stroke="black" strokeWidth="2" />
-    </Svg>
-    <TouchableOpacity style={styles.clearButton} onPress={clearSignature}>
-      <Text>Limpiar</Text>
+      <Text style={styles.buttonText}>Enviar a API</Text>
     </TouchableOpacity>
   </View>
-</View>
-<View style={styles.cameraContainer}>
-            <CameraView
-              facing='front'
-              style={styles.cameraPreview}
-              ref={cameraRef}
-            >
-              <View style={{ height: 300 }}></View>
-            </CameraView>
-          </View>
+  );
 
-      <TextInput
-        style={styles.input}
-        placeholder="List ID"
-        value={listId}
-        onChangeText={setListId}
-        keyboardType="numeric"
-      />
-      <Button title="Agregar Registro" onPress={addTask} />
 
-      <Text style={styles.title}>Registros</Text>
-      <FlatList
-        data={tasks}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <Text>
-            ID: {item.id}, Cliente: {item.cliente}
+
+  return (
+    <SafeAreaView style={styles.container}>
+    {/* Header */}
+    <View style={[styles.header, { paddingTop: 20+ 4 }]}>
+      {/* <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navButton}>
+        <Text style={styles.navButtonText}>Atrás</Text>
+      </TouchableOpacity> */}
+      <Text style={styles.title}>{sistema}</Text>
+    </View>
+
+    {/* Tab Bar */}
+    <View style={styles.tabBar}>
+      {['Primera Firma', 'Segunda Firma', 'Pendientes'].map((tab, index) => (
+        <TouchableOpacity
+          key={index}
+          style={[styles.tab, selectedTab === index && styles.activeTab]}
+          onPress={() => handleTabChange(index)}
+        >
+          <Text style={[styles.tabText, selectedTab === index && styles.activeTabText]}>
+            {tab}
           </Text>
-        )}
+        </TouchableOpacity>
+      ))}
+    </View>
+    <View>
+      
+    </View>
+
+    {/* Filters */}
+    <View style={styles.filterContainer}>
+      <TouchableOpacity
+        style={styles.dropdown}
+        // onPress={() => setSelectedIndex((prev) => (prev === null ? 0 : null))}
+      >
+        <Text style={styles.dropdownText}>
+          {selectedIndex === 0 ? 'Ordenar por Fecha' : selectedIndex === 1 ? 'Ordenar por Cliente' : 'Ordenar por'}
+        </Text>
+      </TouchableOpacity>
+      <TextInput
+        placeholder="Buscar"
+        style={styles.search}
+        value={searchText}
+        onChangeText={(text) => setSearchText(text)}
       />
-     </ScrollView>
+    </View>
+
+    {/* Content */}
+    <FlatList
+      data={
+        selectedTab === 0
+          ? filteredData
+          : selectedTab === 1
+          ? lista2daFirma
+          : lista3
+      }
+      keyExtractor={(item, index) => index.toString()}
+      contentContainerStyle={styles.content}
+      renderItem={({ item }) => (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            {/* <Image source={getStatusImage(item.fecha_vencimiento)} style={styles.smallImage} /> */}
+            <Text style={styles.cardTitle}>
+              {item.titulo} (status: {item.status})
+            </Text>
+          </View>
+          <View style={styles.cardDetails}>
+            <Text style={styles.label}>Fecha:</Text>
+            <Text style={styles.value}>{item.fecha_vencimiento}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => {
+              if (selectedTab === 0) {
+                handleNavigateToDetail(item);
+              } else if (selectedTab === 1) {
+                //navigation.navigate('FormFirma2', { id: item.id });
+              } else {
+                handleSendTaskAsync(item);
+              }
+            }}
+          >
+            <Text style={styles.buttonText}>
+              {selectedTab === 0 ? 'Ver Detalle' : selectedTab === 1 ? 'Firmar' : 'Enviar'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    />
+  </SafeAreaView>
+    
   );
 }
 
@@ -350,6 +337,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    
   },
   title: {
     fontSize: 20,
@@ -406,5 +394,122 @@ const styles = StyleSheet.create({
   cameraPreview: {
     width: '100%',
     height: '100%',
+  },
+  card: {
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    marginBottom: 16,
+    elevation: 2, // Para sombra en Android
+    shadowColor: '#000', // Para sombra en iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+
+  button: {
+    marginTop: 16,
+    backgroundColor: '#007BFF',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+ 
+  header: {
+    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  navButton: {
+    marginRight: 16,
+  },
+  navButtonText: {
+    fontSize: 16,
+    color: '#007BFF',
+  },
+ 
+  tabBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 10,
+  },
+  tab: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#007BFF',
+  },
+  tabText: {
+    fontSize: 16,
+    color: '#555',
+  },
+  activeTabText: {
+    color: '#007BFF',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginVertical: 10,
+  },
+  dropdown: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    marginRight: 10,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  dropdownText: {
+    color: '#555',
+  },
+  search: {
+    flex: 2,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 8,
+  },
+  content: {
+    paddingHorizontal: 16,
+  },
+
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  smallImage: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cardDetails: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  label: {
+    fontWeight: 'bold',
+    marginRight: 8,
+  },
+  value: {
+    color: '#555',
   },
 });

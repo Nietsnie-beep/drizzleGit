@@ -1,0 +1,1 @@
+export const API_HOST = "https://dsitasks-tasksdsi.5n7tjo.easypanel.host";

@@ -1,48 +1,31 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "8ac4ed26-e454-4f89-8f2a-e224108b0d5e",
-  "prevId": "40cfd3f2-b6dc-4203-a1ad-2bbb609d118c",
+  "id": "ae69a5c4-c195-4f14-8d17-63278bf0766e",
+  "prevId": "27e2b7cc-ca0b-4804-939d-3e46b7f16fd7",
   "tables": {
-    "lists": {
-      "name": "lists",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "tasks": {
       "name": "tasks",
       "columns": {
         "id": {
           "name": "id",
           "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "list_id": {
-          "name": "list_id",
-          "type": "integer",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "titulo": {
+          "name": "titulo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fecha_vencimiento": {
+          "name": "fecha_vencimiento",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "cliente": {
@@ -66,65 +49,81 @@
           "notNull": false,
           "autoincrement": false
         },
-        "imagen1": {
-          "name": "imagen1",
+        "image_1_base64": {
+          "name": "image_1_base64",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "imagen2": {
-          "name": "imagen2",
+        "image_2_base64": {
+          "name": "image_2_base64",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "imagen3": {
-          "name": "imagen3",
+        "image_3_base64": {
+          "name": "image_3_base64",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "imagen4": {
-          "name": "imagen4",
+        "image_4_base64": {
+          "name": "image_4_base64",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "firma": {
-          "name": "firma",
+        "firma_base64": {
+          "name": "firma_base64",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "foto": {
-          "name": "foto",
+        "firma_2": {
+          "name": "firma_2",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "image_persona_2": {
+          "name": "image_persona_2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "foto_base64": {
+          "name": "foto_base64",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status_envio": {
+          "name": "status_envio",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 1
+        },
+        "marca": {
+          "name": "marca",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 1
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "tasks_list_id_lists_id_fk": {
-          "name": "tasks_list_id_lists_id_fk",
-          "tableFrom": "tasks",
-          "tableTo": "lists",
-          "columnsFrom": [
-            "list_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
