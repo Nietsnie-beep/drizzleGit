@@ -3,7 +3,7 @@ import { View, Text, Button, Image, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const TaskDetail = () => {
-    const {id, title, tecnico_nombre, fecha_fin } = useLocalSearchParams();
+    const { id, title, tecnico_nombre, fecha_fin } = useLocalSearchParams();
   const router = useRouter();
 
   return (
@@ -24,25 +24,25 @@ const TaskDetail = () => {
       <View style={styles.content}>
         <Button
           title="Firmar"
-          onPress={() =>  router.push({
-                pathname: '/(tabs)/formulario1', // Ruta de destino
-                params: {
-                  id: id,
-                  title: title,
-                  fecha_fin: fecha_fin,
-                },
-              })} // Usando router.push() para navegar a otra página
+          onPress={() => router.push({
+            pathname: `/(tabs)/formulario1`,
+            params: {
+              id: id,
+              title: title,
+              fecha_fin: fecha_fin,
+            },
+          })} // Usando router.push() para navegar a otra página
         />
         
         <View style={styles.textSection}>
           <Text style={styles.title}>{title}</Text>
-          {/* <Text style={styles.author}>Cliente: {author}</Text> */}
+          <Text style={styles.author}>Cliente: {author}</Text>
           <Text style={styles.tecnico}>Técnico: {tecnico_nombre}</Text>
         </View>
         
         <View style={styles.descriptionSection}>
           <Text style={styles.descriptionTitle}>Descripción:</Text>
-          {/* <Text style={styles.summary}>{summary}</Text> */}
+          <Text style={styles.summary}>{summary}</Text>
         </View>
       </View>
     </View>

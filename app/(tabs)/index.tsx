@@ -17,6 +17,7 @@ import { API_HOST } from '@/components/api';
 import { eq } from 'drizzle-orm';
 import migrations from '@/drizzle/migrations';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
+import { router } from 'expo-router';
 
 interface Task {
   id: number;
@@ -156,21 +157,15 @@ export default function HomeScreen() {
   }, [searchText, data]);
 
   const handleNavigateToDetail = (task: Task) => {
-    // navigation.navigate('taskDetail', {
-    //   id: task.id,
-    //   title: task.titulo,
-    //   author: task.cliente_nombre,
-    //   tecnico_nombre: task.tecnico_nombre,
-    //   duration: "24 mins", // Reemplaza con los datos reales si están disponibles en task
-    //   rating: 5, // Reemplaza con los datos reales si están disponibles en task
-    //   reviewers: 241, // Reemplaza con los datos reales si están disponibles en task
-    //   cliente_nombre: task.cliente_nombre, // Reemplaza con los datos reales si están
-    //   summary: task.description,
-    //   imageSource: Images.reading.firma, // Reemplaza con la fuente de imagen real si está disponible en task
-    //   status: task.status,
-    //   estatus_firma_2: task.estatus_firma_2, // Asegúrate de que 'estatus_firma_2' esté presente en el objeto 'task'
-    //   fecha_fin: task.fecha_vencimiento,
-    // });
+    router.push({
+      pathname: '/(tabs)/explore', // Ruta de destino
+      params: {
+        id: task.id,
+        title: task.titulo,
+        tecnico_nombre: task.tecnico_nombre,
+        fecha_fin: task.fecha_vencimiento,
+      },
+    });
 
   };
 

@@ -10,7 +10,7 @@ import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Link } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 
 
@@ -36,6 +36,7 @@ interface Task2 {
 }
 
 export default function HomeScreen() {
+  const {id, title, fecha_fin } = useLocalSearchParams();
   const db = useSQLiteContext();
   const drizzleDb = drizzle(db, { schema });
 
@@ -57,6 +58,8 @@ export default function HomeScreen() {
 
   const cameraRef = React.useRef<any>(null);
 
+  const [idNumero, setIdNumero] = useState<number>(0);
+
 
 
   // Cargar datos al iniciar
@@ -66,11 +69,14 @@ export default function HomeScreen() {
         columns: {
           id: true,
           cliente: true,
+          marca: true
         },
       });
       setTasks(fetchedTasks);
     };
     loadData();
+
+    setIdNumero(parseInt(id.toString(), 10))
   }, []);
 
 
@@ -153,7 +159,7 @@ export default function HomeScreen() {
 
 
   const addTask = async () => {
-    if (!cliente || !correo || !listId) {
+    if (!cliente || !correo ) {
       return alert('Cliente, Correo y List ID son obligatorios');
     }
   
@@ -198,39 +204,66 @@ export default function HomeScreen() {
       console.error('Error al capturar la foto:', error);
     }
 
+    const data = {
+        taskId:parseInt(id.toString()),
+        titulo: title.toString(),
+        fecha_vencimiento: fecha_fin.toString(),
+        image_1_base64: imageBase64Array[0],
+        image_2_base64: imageBase64Array[1],
+        image_3_base64: imageBase64Array[2],
+        image_4_base64: imageBase64Array[3],
+        firma_base64: firmaBase64,
+        status_envio: 1,
+        cliente: cliente,
+        correo: correo,
+        foto: cameraImageBase64,
+        notas: notas,
+        marca: 1,
+        // status: 3,
+      };
+
+      try {
+        await drizzleDb.insert(schema.tasks).values(data);
+        console.log('Datos guardados localmente:', data);
+        // Redirigir o mostrar un mensaje según sea necesario
+        router.push(`/(tabs)`)
+      } catch (error) {
+        console.error('Error al guardar los datos localmente:', error);
+      }
+
 
   
     // Insertamos los datos en la base de datos
-    await drizzleDb.insert(schema.tasks).values({
-      cliente,
-      correo,
-      notas,
-      imagen1: imageBase64Array[0],
-      imagen2: imageBase64Array[1],
-      imagen3: imageBase64Array[2],
-      imagen4: imageBase64Array[3],
-      firma: firmaBase64,  // Guardamos la firma en base64
-      foto: cameraImageBase64,
-      list_id: Number(listId),
-    });
+    // await drizzleDb.insert(schema.tasks).values({
+    //   cliente,
+    //   correo,
+    //   notas,
+    //   imagen1: imageBase64Array[0],
+    //   imagen2: imageBase64Array[1],
+    //   imagen3: imageBase64Array[2],
+    //   imagen4: imageBase64Array[3],
+    //   firma: firmaBase64,  // Guardamos la firma en base64
+    //   foto: cameraImageBase64,
+    //   list_id: Number(listId),
+    // });
   
     // Actualizamos la lista de tareas
-    const fetchedTasks = await drizzleDb.query.tasks.findMany({
-      columns: {
-        id: true,
-        cliente: true,
-      },
-    });
-    setTasks(fetchedTasks);
+    // const fetchedTasks = await drizzleDb.query.tasks.findMany({
+    //   columns: {
+    //     id: true,
+    //     cliente: true,
+    //   },
+    // });
+    // setTasks(fetchedTasks);
   
-    // Limpiamos el formulario
-    setCliente('');
-    setCorreo('');
-    setNotas('');
-    setImages([null, null, null, null]);
-    setFirma('');
-    setFoto('');
-    setListId('');
+    // // Limpiamos el formulario
+    // setCliente('');
+    // setCorreo('');
+    // setNotas('');
+    // setImages([null, null, null, null]);
+    // setFirma('');
+    // setFoto('');
+    // setListId('');
   };
 
   return (
@@ -327,27 +360,10 @@ export default function HomeScreen() {
             </CameraView>
           </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="List ID"
-        value={listId}
-        onChangeText={setListId}
-        keyboardType="numeric"
-      />
+    
       {/* <Link href="/explore" asChild> */}
       <Button title="Agregar Registro" onPress={addTask} />
-      {/* </Link> */}
-
-      <Text style={styles.title}>Registros</Text>
-      <FlatList
-        data={tasks}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <Text>
-            ID: {item.id}, Cliente: {item.cliente}
-          </Text>
-        )}
-      />
+    
       <View style={{height:100}}>
         </View>
      </ScrollView>
