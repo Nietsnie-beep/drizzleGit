@@ -76,6 +76,9 @@ export default function HomeScreen() {
     };
     loadData();
 
+    console.log("id " + id);
+    
+
     setIdNumero(parseInt(id.toString(), 10))
   }, []);
 
@@ -205,7 +208,7 @@ export default function HomeScreen() {
     }
 
     const data = {
-        taskId:parseInt(id.toString()),
+        taskId:idNumero,
         titulo: title.toString(),
         fecha_vencimiento: fecha_fin.toString(),
         image_1_base64: imageBase64Array[0],

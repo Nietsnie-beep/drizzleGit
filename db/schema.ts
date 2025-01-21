@@ -3,7 +3,7 @@ import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 // Tabla de tareas
 export const tasks = sqliteTable('tasks', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  taskId: integer('id'),
+  taskId: integer('taskId'),
   titulo: text('titulo'),
   fecha_vencimiento: text('fecha_vencimiento'),
   cliente: text('cliente').notNull(),

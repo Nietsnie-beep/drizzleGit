@@ -5,7 +5,7 @@ import * as FileSystem from 'expo-file-system';
 //import { encode as base64Encode } from 'base-64';
 
 
-import { CameraView, CameraType, useCameraPermissions, Camera } from 'expo-camera';
+import { CameraType, useCameraPermissions, Camera, CameraView } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 
 
@@ -25,7 +25,7 @@ interface id {
 }
 
 
-export default function form2() {
+export default function form3() {
 
   const db = useSQLiteContext();
   const drizzleDb = drizzle(db, { schema });
@@ -176,6 +176,7 @@ export default function form2() {
       );
     }
   }
+
 
 
 

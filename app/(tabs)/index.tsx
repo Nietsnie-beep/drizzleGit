@@ -89,6 +89,7 @@ export default function HomeScreen() {
   const [lista3, setlista3] = React.useState<any[]>([]);
 
   const [sistema, setSistema] = React.useState<string>("");
+  const [refreshFlag, setRefreshFlag] = React.useState(false);
 
  
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -104,38 +105,47 @@ export default function HomeScreen() {
         const response = await axios.get<Task[]>(
           `${API_HOST}/tareas_tecnico/${userId}`
         );
-        setData(response.data);
-        console.log('Data:', userId);
+
+        const remoteData = response.data;
         
+       
+        console.log('Data:', userId);
+
+
+        const localData1 = await drizzleDb
+          .select()
+          .from(schema.tasks)
+          .where(eq(schema.tasks.marca, 1));
+
+          setlista2daFirma(localData1)
+        const localData2 = await drizzleDb
+          .select()
+          .from(schema.tasks)
+          .where(eq(schema.tasks.marca, 0));
+
+          setlista3(localData2)
+
+        const localTaskIds = [
+          ...localData1.map((task) => task.taskId),
+          ...localData2.map((task) => task.taskId),
+        ];
+        
+        const filteredData = remoteData.filter((task) => !localTaskIds.includes(task.id));
+        setData(filteredData);
 
         // Filtro inicial: Solo tareas con `status === 1`
         setFilteredData(response.data.filter((task) => task.status === 1));
       } catch (error) {
         console.error("Error fetching data: ", error);
       }
+      
 
-      try {
-        const data = await drizzleDb.select().from(schema.tasks).where(eq(schema.tasks.marca, 1));
-        setSistema("coneccion hecha")
-        //console.error('informaciontomada:', data);
-        setlista2daFirma(data);
-      } catch (error) {
-        console.error('error:', data);
-        setSistema("error")
-      }
+     
 
-      try {
-        const data = await drizzleDb.select().from(schema.tasks).where(eq(schema.tasks.marca, 0));
-        console.error('informaciontomada:', data);
-        setSistema("coneccion hecha")
-        setlista3(data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setSistema("error")
-      }
+     
     };
     fetchData();
-  }, []); // Solo se ejecuta al cargar la pantalla
+  }, [refreshFlag]); // Solo se ejecuta al cargar la pantalla
 
   const applyFilters = () => {
     let updatedData = [...data];
@@ -164,6 +174,7 @@ export default function HomeScreen() {
         title: task.titulo,
         tecnico_nombre: task.tecnico_nombre,
         fecha_fin: task.fecha_vencimiento,
+        summary: task.description,
       },
     });
 
@@ -175,27 +186,52 @@ export default function HomeScreen() {
       cliente: task.cliente,
       correo: task.correo,
       notas: task.notas,
-      image_1: task.image_1_base64,
-      image_2: task.image_2_base64,
-      image_3: task.image_3_base64,
-      image_4: task.image_4_base64,
-      firma: task.firma_base64,
+      image_1_base64: task.image_1_base64,
+      image_2_base64: task.image_2_base64,
+      image_3_base64: task.image_3_base64,
+      image_4_base64: task.image_4_base64,
+      firma_base64: task.firma_base64,
       firma_2: task.firma_2,
       image_persona_2: task.image_persona_2,
-      image_persona: task.foto_base64,
+      foto: task.foto_base64,
       status_envio: 1,
       status: 2,
       status_firma_2:3,
       marca: task.marca,
 
     };
+
+    const dataToSend2 = {
+      status:2,
+      status_envio: 1,
+    }
+
+    console.log("onformacion trata de enviar: " + task.cliente);
+    console.log("onformacion trata de enviar: " + task.correo);
+    console.log("onformacion trata de enviar: " + task.notas);
+
+
+    
   
     // Ahora puedes enviar el objeto con los datos al servidor
     try {
       const response = await axios.put(`${API_HOST}/update/${task.taskId}/`, dataToSend);
       console.log('Respuesta del servidor:', response.data);
+
+      try {
+        const deleteResult = await drizzleDb
+          .delete(schema.tasks)
+          .where(eq(schema.tasks.id, task.id));
+        setlista3((prevLista) => prevLista.filter((item) => item.id !== task.id));
+        console.log('Registro eliminado de la base de datos local:', deleteResult);
+      } catch (deleteError) {
+        console.error('Error al eliminar el registro de la base de datos local:', deleteError);
+      }
+
+      // const response2 = await axios.put(`${API_HOST}/update/${task.taskId}/`, dataToSend2);
+      // console.log('Respuesta del servidor2:', response2.data);
      
-      //navigation.navigate('taskList');
+      //navigation.navigate('taskList') 
     } catch (error) {
       console.error('Error al enviar los datos al servidor:', error);
       // Manejo de errores, como mostrar un mensaje de error
@@ -216,6 +252,18 @@ export default function HomeScreen() {
     console.log('Simulated API call with data:', JSON.stringify(item, null, 2));
     //
     // Alert.alert('Simulación de envío', 'Datos enviados a la API simulada.');
+  };
+
+  const handleDeleteTask = async (item:any) => {
+    try {
+      await drizzleDb.delete(schema.tasks).where(eq(schema.tasks.taskId, item.taskId));
+      console.log(`Tarea con ID ${item.taskId} eliminada`);
+      // Opcional: Actualiza la lista local si es necesario
+      setlista3((prevLista) => prevLista.filter((task) => task.taskId !== item.taskId));
+      setRefreshFlag((prev) => !prev);
+    } catch (error) {
+      console.error('Error al eliminar la tarea:', error);
+    }
   };
 
   const renderItem = ({ item }: { item: any }) => (
@@ -242,12 +290,12 @@ export default function HomeScreen() {
       {/* <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navButton}>
         <Text style={styles.navButtonText}>Atrás</Text>
       </TouchableOpacity> */}
-      <Text style={styles.title}>{sistema}</Text>
+      <Text style={styles.title}>Hola!</Text>
     </View>
 
     {/* Tab Bar */}
     <View style={styles.tabBar}>
-      {['Primera Firma', 'Segunda Firma', 'Pendientes'].map((tab, index) => (
+      {['Primera', 'Segunda', 'Pendientes'].map((tab, index) => (
         <TouchableOpacity
           key={index}
           style={[styles.tab, selectedTab === index && styles.activeTab]}
@@ -297,7 +345,7 @@ export default function HomeScreen() {
           <View style={styles.cardHeader}>
             {/* <Image source={getStatusImage(item.fecha_vencimiento)} style={styles.smallImage} /> */}
             <Text style={styles.cardTitle}>
-              {item.titulo} (status: {item.status})
+              {item.titulo}
             </Text>
           </View>
           <View style={styles.cardDetails}>
@@ -311,6 +359,14 @@ export default function HomeScreen() {
                 handleNavigateToDetail(item);
               } else if (selectedTab === 1) {
                 //navigation.navigate('FormFirma2', { id: item.id });
+                router.push({
+                  pathname: '/(tabs)/explore', // Ruta de destino
+                  params: {
+                    id: item.id,
+                    segundaFirma: 1
+                  },
+                });
+            
               } else {
                 handleSendTaskAsync(item);
               }
@@ -320,6 +376,14 @@ export default function HomeScreen() {
               {selectedTab === 0 ? 'Ver Detalle' : selectedTab === 1 ? 'Firmar' : 'Enviar'}
             </Text>
           </TouchableOpacity>
+          {selectedTab === 2 && (
+              <TouchableOpacity
+                style={styles.deleteButton} // Puedes agregar un estilo específico para el botón de borrar
+                onPress={() => handleDeleteTask(item)} // Acción para borrar
+              >
+                <Text style={styles.buttonText}>Borrar</Text>
+              </TouchableOpacity>
+            )}
         </View>
       )}
     />
@@ -433,6 +497,14 @@ const styles = StyleSheet.create({
     color: '#007BFF',
   },
  
+  deleteButton: {
+    marginTop: 16,
+    backgroundColor: '#f44336',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
   tabBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
