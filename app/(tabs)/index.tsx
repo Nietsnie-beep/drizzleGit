@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, FlatList, Touchable, TouchableOpacity, ScrollView, Image, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, FlatList, Touchable, TouchableOpacity, ScrollView, Image, SafeAreaView, Alert } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as schema from '@/db/schema';
@@ -232,9 +232,12 @@ export default function HomeScreen() {
       // console.log('Respuesta del servidor2:', response2.data);
      
       //navigation.navigate('taskList') 
+      Alert.alert('Éxito', 'Tarea enviada correctamente.');
     } catch (error) {
       console.error('Error al enviar los datos al servidor:', error);
       // Manejo de errores, como mostrar un mensaje de error
+      Alert.alert('Error', 'No se pudo enviar la tarea. Por favor, intenta de nuevo.');
+
     }
   };
 
@@ -254,6 +257,23 @@ export default function HomeScreen() {
     // Alert.alert('Simulación de envío', 'Datos enviados a la API simulada.');
   };
 
+  const getColorByDate = (fechaVencimiento:any) => {
+    const today = new Date();
+    const expirationDate = new Date(fechaVencimiento);
+
+    // Calcula la diferencia en días (ajustando las horas a 0)
+    const differenceInTime = expirationDate.setHours(0, 0, 0, 0) - today.setHours(0, 0, 0, 0);
+    const differenceInDays = differenceInTime / (1000 * 60 * 60 * 24);
+
+    console.log("diferencia" + differenceInDays);
+    
+
+    if (differenceInDays >= 1) return 'green'; // Más de 1 día
+    if (differenceInDays === 0) return 'yellow'; // Mismo día
+    return 'red'; // Fecha vencida o mañana
+  };
+
+
   const handleDeleteTask = async (item:any) => {
     try {
       await drizzleDb.delete(schema.tasks).where(eq(schema.tasks.taskId, item.taskId));
@@ -265,6 +285,8 @@ export default function HomeScreen() {
       console.error('Error al eliminar la tarea:', error);
     }
   };
+
+  
 
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
@@ -311,23 +333,7 @@ export default function HomeScreen() {
       
     </View>
 
-    {/* Filters */}
-    <View style={styles.filterContainer}>
-      <TouchableOpacity
-        style={styles.dropdown}
-        // onPress={() => setSelectedIndex((prev) => (prev === null ? 0 : null))}
-      >
-        <Text style={styles.dropdownText}>
-          {selectedIndex === 0 ? 'Ordenar por Fecha' : selectedIndex === 1 ? 'Ordenar por Cliente' : 'Ordenar por'}
-        </Text>
-      </TouchableOpacity>
-      <TextInput
-        placeholder="Buscar"
-        style={styles.search}
-        value={searchText}
-        onChangeText={(text) => setSearchText(text)}
-      />
-    </View>
+  
 
     {/* Content */}
     <FlatList
@@ -349,8 +355,15 @@ export default function HomeScreen() {
             </Text>
           </View>
           <View style={styles.cardDetails}>
+          <View
+        style={[
+          styles.circle,
+          { backgroundColor: getColorByDate(item.fecha_vencimiento) }, // Cambia el color dinámicamente
+        ]}
+      />
             <Text style={styles.label}>Fecha:</Text>
             <Text style={styles.value}>{item.fecha_vencimiento}</Text>
+          
           </View>
           <TouchableOpacity
             style={styles.button}
@@ -376,14 +389,6 @@ export default function HomeScreen() {
               {selectedTab === 0 ? 'Ver Detalle' : selectedTab === 1 ? 'Firmar' : 'Enviar'}
             </Text>
           </TouchableOpacity>
-          {selectedTab === 2 && (
-              <TouchableOpacity
-                style={styles.deleteButton} // Puedes agregar un estilo específico para el botón de borrar
-                onPress={() => handleDeleteTask(item)} // Acción para borrar
-              >
-                <Text style={styles.buttonText}>Borrar</Text>
-              </TouchableOpacity>
-            )}
         </View>
       )}
     />
@@ -453,6 +458,13 @@ const styles = StyleSheet.create({
   cameraPreview: {
     width: '100%',
     height: '100%',
+  },
+  circle: {
+    width: 24, // Ancho del círculo
+    height: 24, // Alto del círculo
+    borderRadius: 12, // Hace que sea perfectamente circular
+    marginLeft: 5, // Espacio entre el texto y el círculo
+    marginRight:10
   },
   card: {
     padding: 16,
