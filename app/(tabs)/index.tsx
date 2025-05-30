@@ -94,9 +94,47 @@ export default function HomeScreen() {
  
   const [selectedIndex, setSelectedIndex] = useState(null);
 
-  
-  
+  const [editingTask, setEditingTask] = React.useState<Task | null>(null);
+const [modalVisible, setModalVisible] = React.useState(false);
+const [editedNotes, setEditedNotes] = React.useState('');
+const [editedEmail, setEditedEmail] = React.useState('');
 
+  
+  
+const handleEditTask = async () => {
+  if (!editingTask) return;
+
+  try {
+    await drizzleDb.update(schema.tasks)
+      .set({ 
+        notas: editedNotes,
+        correo: editedEmail 
+      })
+      .where(eq(schema.tasks.id, editingTask.id));
+
+    // Actualiza la lista local
+    setlista3(prevLista => 
+      prevLista.map(item => 
+        item.id === editingTask.id 
+          ? { ...item, notas: editedNotes, correo: editedEmail } 
+          : item
+      )
+    );
+
+    setModalVisible(false);
+    Alert.alert('Éxito', 'Los cambios se guardaron correctamente');
+  } catch (error) {
+    console.error('Error al editar la tarea:', error);
+    Alert.alert('Error', 'No se pudieron guardar los cambios');
+  }
+};
+
+const handleOpenEditModal = (item: any) => {
+  setEditingTask(item);
+  setEditedNotes(item.notas || '');
+  setEditedEmail(item.correo || '');
+  setModalVisible(true);
+};
 
   React.useEffect(() => {
     // Fetch data from API
@@ -391,16 +429,58 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           {selectedTab === 2 && (
-            <TouchableOpacity
-              style={[styles.button, styles.deleteButton]} // Agrega un estilo diferente para el botón de eliminar
-              onPress={() => handleDeleteTask(item)}
-            >
-              <Text style={styles.buttonText}>Eliminar {item.notas}</Text>
-            </TouchableOpacity>
-          )}
+  <TouchableOpacity
+    style={[styles.button, styles.editButton]}
+    onPress={() => handleOpenEditModal(item)}
+  >
+    <Text style={styles.buttonText}>Editar</Text>
+  </TouchableOpacity>
+)}
         </View>
       )}
     />
+
+    {modalVisible && (
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContainer}>
+      <Text style={styles.modalTitle}>Editar Tarea</Text>
+      
+      <Text style={styles.modalLabel}>Correo:</Text>
+      <TextInput
+        style={styles.modalInput}
+        value={editedEmail}
+        onChangeText={setEditedEmail}
+        placeholder="Ingrese el correo"
+        keyboardType="email-address"
+      />
+      
+      <Text style={styles.modalLabel}>Notas:</Text>
+      <TextInput
+        style={[styles.modalInput, { height: 100 }]}
+        value={editedNotes}
+        onChangeText={setEditedNotes}
+        placeholder="Ingrese las notas"
+        multiline
+      />
+      
+      <View style={styles.modalButtonsContainer}>
+        <TouchableOpacity 
+          style={[styles.modalButton, styles.cancelButton]}
+          onPress={() => setModalVisible(false)}
+        >
+          <Text style={styles.modalButtonText}>Cancelar</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.modalButton, styles.saveButton]}
+          onPress={handleEditTask}
+        >
+          <Text style={styles.modalButtonText}>Guardar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+)}
   </SafeAreaView>
     
   );
@@ -600,4 +680,61 @@ const styles = StyleSheet.create({
   value: {
     color: '#555',
   },
+  modalOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 100,
+},
+modalContainer: {
+  width: '80%',
+  backgroundColor: 'white',
+  borderRadius: 10,
+  padding: 20,
+},
+modalTitle: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  marginBottom: 20,
+  textAlign: 'center',
+},
+modalLabel: {
+  fontWeight: 'bold',
+  marginBottom: 5,
+},
+modalInput: {
+  borderWidth: 1,
+  borderColor: '#ccc',
+  borderRadius: 5,
+  padding: 10,
+  marginBottom: 15,
+},
+modalButtonsContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+},
+modalButton: {
+  padding: 10,
+  borderRadius: 5,
+  width: '48%',
+  alignItems: 'center',
+},
+cancelButton: {
+  backgroundColor: '#ccc',
+},
+saveButton: {
+  backgroundColor: '#007bff',
+},
+modalButtonText: {
+  color: 'white',
+  fontWeight: 'bold',
+},
+editButton: {
+  backgroundColor: '#ffc107', // Color amarillo para editar
+},
 });

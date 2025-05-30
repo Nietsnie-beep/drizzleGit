@@ -23,6 +23,26 @@ import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as schema from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
+interface TaskData {
+  id: number;
+  taskId?: number;
+  titulo: string;
+  fecha_vencimiento: string;
+  cliente: string;
+  correo: string;
+  notas?: string;
+  image_1_base64?: string;
+  image_2_base64?: string;
+  image_3_base64?: string;
+  image_4_base64?: string;
+  firma_base64?: string;
+  firma_2?: string;
+  image_persona_2?: string;
+  foto_base64?: string;
+  status_envio?: number;
+  marca?: number;
+}
+
 export default function taskdeail() {
 
     const {id, title, summary, fecha_fin, segundaFirma} = useLocalSearchParams();
@@ -40,16 +60,35 @@ export default function taskdeail() {
     const [photoUri, setPhotoUri] = React.useState<string | null>(null);
     const [permission, requestPermission] = useCameraPermissions();
   
-    const [cliente, setCliente] = React.useState<string>('');
-    const [correo, setCorreo] = React.useState<string>('');
-    const [notas, setNotas] = React.useState<string>('');
-  
-    const [clienteError, setClienteError] = React.useState<string>('');
-    const [correoError, setCorreoError] = React.useState<string>('');
-  
     const [loading, setLoading] = React.useState(false);
+  const [taskData, setTaskData] = React.useState<TaskData | null>(null);
+  const [fetchingData, setFetchingData] = React.useState(true);
+
+  const [showImageInfo, setShowImageInfo] = React.useState(false);
   
     const cameraRef = React.useRef<any>(null);
+
+      const fetchTaskData = async () => {
+    try {
+      setFetchingData(true);
+      const result = await drizzleDb.select()
+        .from(schema.tasks)
+        .where(eq(schema.tasks.id, parseInt(id.toString())))
+        .get();
+      
+      if (result) {
+        setTaskData(result as TaskData);
+      }
+    } catch (error) {
+      console.error('Error al obtener los datos:', error);
+    } finally {
+      setFetchingData(false);
+    }
+  };
+
+   React.useEffect(() => {
+    fetchTaskData();
+  }, [id]);
 
     const handleTouchStart = (event: any) => {
       // Inicializa el nuevo path en `currentPath` al empezar a dibujar
@@ -163,7 +202,27 @@ export default function taskdeail() {
       }
 
 
-  if (segundaFirma) {
+
+
+  if (fetchingData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Cargando datos...</Text>
+      </View>
+    );
+  }
+
+  
+  if (!taskData) {
+    return (
+      <View style={styles.container}>
+        <Text>No se encontraron datos para esta tarea</Text>
+      </View>
+    );
+  }
+
+    if (segundaFirma) {
     if (permission) {
       if (!permission.granted) {
         // Mostrar mensaje de permisos no otorgados
@@ -178,11 +237,44 @@ export default function taskdeail() {
     }
   }
 
+
   return (
     <>
     {segundaFirma ? (
        <View style={styles.container}>
             <Text style={styles.header}>Segundo Formulario</Text>
+
+        {showImageInfo && (
+            <View style={styles.taskInfoContainer}>
+            <Text style={styles.taskInfoTitle}>Información del Servicio</Text>
+            <Text style={styles.taskInfoText}>Título: {taskData.titulo}</Text>
+            <Text style={styles.taskInfoText}>Cliente: {taskData.cliente}</Text>
+            <Text style={styles.taskInfoText}>Correo: {taskData.correo}</Text>
+            <Text style={styles.taskInfoText}>Notas: {taskData.notas || 'No hay notas'}</Text>
+            <Text style={styles.taskInfoText}>Fecha vencimiento: {taskData.fecha_vencimiento}</Text>
+
+               {taskData.image_1_base64 && (
+              <View style={styles.imagePreviewContainer}>
+                <Text style={styles.imagePreviewTitle}>Imagen 1:</Text>
+                <Image 
+                  source={{ uri: `data:image/png;base64,${taskData.image_1_base64}` }} 
+                  style={styles.imagePreview}
+                />
+              </View>
+            )}
+          </View>
+
+          )}
+
+          <TouchableOpacity 
+  style={styles.toggleButton}
+  onPress={() => setShowImageInfo(!showImageInfo)}
+>
+  <Text style={styles.toggleButtonText}>
+    {showImageInfo ? 'Ocultar info' : 'Mostrar info'}
+  </Text>
+</TouchableOpacity>
+          
       
             {/* Firma electrónica */}
             <View style={styles.signatureContainer}>
@@ -385,5 +477,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: 16,
   },
+   taskInfoContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  taskInfoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#495057',
+  },
+  taskInfoText: {
+    fontSize: 14,
+    marginBottom: 4,
+    color: '#212529',
+  },
+   imagePreviewContainer: {
+    marginTop: 12,
+  },
+  imagePreviewTitle: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  imagePreview: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'contain',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 4,
+  },
+  toggleButton: {
+  position: 'absolute',
+  top: 16,
+  right: 16,
+  backgroundColor: '#007bff',
+  padding: 8,
+  borderRadius: 4,
+  zIndex: 10,
+},
+toggleButtonText: {
+  color: '#fff',
+  fontWeight: 'bold',
+},
 });
 

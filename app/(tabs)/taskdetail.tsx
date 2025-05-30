@@ -183,7 +183,7 @@ export default function form2() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Segundo Formulario</Text>
+      <Text style={styles.header}>Segundo Formularioo</Text>
 
       {/* Firma electrónica */}
       <View style={styles.signatureContainer}>
