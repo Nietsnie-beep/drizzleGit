@@ -153,7 +153,7 @@ export default function taskdeail() {
             .set(data)
             .where(eq(schema.tasks.id,parseInt(id.toString()))); // Asegúrate de usar el id correcto
       
-          console.log('Datos actualizados correctamente:', data);
+          //console.log('Datos actualizados correctamente:', data);
           setLoading(false);
           router.push({pathname: '/(tabs)'})
           // Aquí puedes realizar alguna acción después de la actualización, como navegar o mostrar un mensaje

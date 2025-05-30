@@ -389,6 +389,15 @@ export default function HomeScreen() {
               {selectedTab === 0 ? 'Ver Detalle' : selectedTab === 1 ? 'Firmar' : 'Enviar'}
             </Text>
           </TouchableOpacity>
+
+          {selectedTab === 2 && (
+            <TouchableOpacity
+              style={[styles.button, styles.deleteButton]} // Agrega un estilo diferente para el botón de eliminar
+              onPress={() => handleDeleteTask(item)}
+            >
+              <Text style={styles.buttonText}>Eliminar {item.notas}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     />

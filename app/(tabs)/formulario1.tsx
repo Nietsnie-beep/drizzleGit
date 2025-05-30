@@ -225,9 +225,12 @@ export default function HomeScreen() {
         // status: 3,
       };
 
+      console.log("enviado " + cameraImageBase64);
+      
+
       try {
         await drizzleDb.insert(schema.tasks).values(data);
-        console.log('Datos guardados localmente:', data);
+        //console.log('Datos guardados localmente:', data);
         // Redirigir o mostrar un mensaje según sea necesario
         router.push(`/(tabs)`)
       } catch (error) {
