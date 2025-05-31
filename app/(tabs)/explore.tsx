@@ -69,26 +69,26 @@ export default function taskdeail() {
     const cameraRef = React.useRef<any>(null);
 
       const fetchTaskData = async () => {
-    try {
-      setFetchingData(true);
-      const result = await drizzleDb.select()
-        .from(schema.tasks)
-        .where(eq(schema.tasks.id, parseInt(id.toString())))
-        .get();
-      
-      if (result) {
-        setTaskData(result as TaskData);
-      }
-    } catch (error) {
-      console.error('Error al obtener los datos:', error);
-    } finally {
-      setFetchingData(false);
-    }
-  };
+        try {
+          setFetchingData(true);
+          const result = await drizzleDb.select()
+            .from(schema.tasks)
+            .where(eq(schema.tasks.id, parseInt(id.toString())))
+            .get();
+          
+          if (result) {
+            setTaskData(result as TaskData);
+          }
+        } catch (error) {
+          console.error('Error al obtener los datos:', error);
+        } finally {
+          setFetchingData(false);
+        }
+      };
 
-   React.useEffect(() => {
-    fetchTaskData();
-  }, [id]);
+    React.useEffect(() => {
+      fetchTaskData();
+    }, [id]);
 
     const handleTouchStart = (event: any) => {
       // Inicializa el nuevo path en `currentPath` al empezar a dibujar
@@ -214,13 +214,13 @@ export default function taskdeail() {
   }
 
   
-  if (!taskData) {
-    return (
-      <View style={styles.container}>
-        <Text>No se encontraron datos para esta tarea</Text>
-      </View>
-    );
-  }
+  // if (!taskData) {
+  //   return (
+  //     <View style={styles.container}>
+  //       <Text>No se encontraron datos para esta tarea</Text>
+  //     </View>
+  //   );
+  // }
 
     if (segundaFirma) {
     if (permission) {
@@ -247,13 +247,13 @@ export default function taskdeail() {
         {showImageInfo && (
             <View style={styles.taskInfoContainer}>
             <Text style={styles.taskInfoTitle}>Información del Servicio</Text>
-            <Text style={styles.taskInfoText}>Título: {taskData.titulo}</Text>
-            <Text style={styles.taskInfoText}>Cliente: {taskData.cliente}</Text>
-            <Text style={styles.taskInfoText}>Correo: {taskData.correo}</Text>
-            <Text style={styles.taskInfoText}>Notas: {taskData.notas || 'No hay notas'}</Text>
-            <Text style={styles.taskInfoText}>Fecha vencimiento: {taskData.fecha_vencimiento}</Text>
+            <Text style={styles.taskInfoText}>Título: {taskData?.titulo}</Text>
+            <Text style={styles.taskInfoText}>Cliente: {taskData?.cliente}</Text>
+            <Text style={styles.taskInfoText}>Correo: {taskData?.correo}</Text>
+            <Text style={styles.taskInfoText}>Notas: {taskData?.notas || 'No hay notas'}</Text>
+            <Text style={styles.taskInfoText}>Fecha vencimiento: {taskData?.fecha_vencimiento}</Text>
 
-               {taskData.image_1_base64 && (
+               {taskData?.image_1_base64 && (
               <View style={styles.imagePreviewContainer}>
                 <Text style={styles.imagePreviewTitle}>Imagen 1:</Text>
                 <Image 
