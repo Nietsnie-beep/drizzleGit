@@ -77,7 +77,9 @@ export default function taskdeail() {
             .get();
           
           if (result) {
-            setTaskData(result as TaskData);
+            const taskData = result as TaskData;
+            setTaskData(taskData);
+            console.log("hola" + taskData.foto_base64);
           }
         } catch (error) {
           console.error('Error al obtener los datos:', error);
@@ -88,6 +90,9 @@ export default function taskdeail() {
 
     React.useEffect(() => {
       fetchTaskData();
+
+      
+      
     }, [id]);
 
     const handleTouchStart = (event: any) => {

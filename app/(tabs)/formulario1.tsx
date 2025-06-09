@@ -40,6 +40,8 @@ export default function HomeScreen() {
   const db = useSQLiteContext();
   const drizzleDb = drizzle(db, { schema });
 
+   const [scrollEnabled, setScrollEnabled] = useState(true);
+
 
   const [cliente, setCliente] = useState<string>('');
   const [correo, setCorreo] = useState<string>('');
@@ -115,6 +117,7 @@ export default function HomeScreen() {
   };
 
   const handleTouchStart = (event: any) => {
+    setScrollEnabled(false); 
     // Inicializa el nuevo path en `currentPath` al empezar a dibujar
     //setScrollEnabled(false);
     const { nativeEvent } = event;
@@ -131,7 +134,9 @@ export default function HomeScreen() {
   };
 
   const handleTouchEnd = () => {
-    //setScrollEnabled(true); // Reactivar scroll
+    //setScrollEnabled(true); // R
+    // eactivar scroll
+    setScrollEnabled(true); 
     // Agrega el path actual a la lista de paths y reinicia `currentPath`
     // setPaths((prevPaths) => [...prevPaths, currentPath]);
     // setCurrentPath('');
@@ -219,7 +224,7 @@ export default function HomeScreen() {
         status_envio: 1,
         cliente: cliente,
         correo: correo,
-        foto: cameraImageBase64,
+        foto_base64: cameraImageBase64,
         notas: notas,
         marca: 1,
         // status: 3,
@@ -273,7 +278,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} scrollEnabled={scrollEnabled}>
       <Text style={styles.title}>Agregar Nuevo Registro</Text>
       <TextInput
         style={styles.input}

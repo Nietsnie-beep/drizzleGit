@@ -244,14 +244,14 @@ const handleOpenEditModal = (item: any) => {
       status_envio: 1,
     }
 
-    console.log("onformacion trata de enviar: " + task.cliente);
+    console.log("onformacion trata de enviar: " + task.foto_base64);
     console.log("onformacion trata de enviar: " + task.correo);
     console.log("onformacion trata de enviar: " + task.notas);
 
 
     
   
-    // Ahora puedes enviar el objeto con los datos al servidor
+   
     try {
       const response = await axios.put(`${API_HOST}/update/${task.taskId}/`, dataToSend);
       console.log('Respuesta del servidor:', response.data);
